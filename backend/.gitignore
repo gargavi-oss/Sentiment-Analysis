@@ -1,0 +1,6 @@
+# Ignore model artifacts
+twitter_sentiment_model/
+*.bin
+*.pt
+*.pkl
+/logs/
