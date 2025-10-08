@@ -4,3 +4,4 @@ twitter_sentiment_model/
 *.pt
 *.pkl
 /logs/
+hugface.py
