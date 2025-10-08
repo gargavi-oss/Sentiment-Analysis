@@ -12,7 +12,7 @@ export default function BatchInput({ addHistory, results, setResults }) {
     setLoading(true);
 
     try {
-      const res = await axios.post("http://127.0.0.1:8000/batch_analyze", { texts });
+      const res = await axios.post("https://sentiment-analysis-mb76.onrender.com/batch_analyze", { texts });
       const batchResults = res.data.results || [];
 
       // ✅ Ensure each result has proper fields
