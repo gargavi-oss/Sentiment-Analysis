@@ -1,79 +1,62 @@
 import React, { useState } from "react";
-import axios from "axios";
-import { motion } from "framer-motion";
+import ModeToggle from "./components/ModeToggle";
+import SingleInput from "./components/SingleInput";
+import BatchInput from "./components/BatchInput";
+import HistoryPanel from "./components/HistoryPanel";
 
-function App() {
-  const [text, setText] = useState("");
-  const [result, setResult] = useState(null);
-  const [loading, setLoading] = useState(false);
+export default function App() {
+  const [mode, setMode] = useState("single");
+  const [history, setHistory] = useState([]);
 
-  const handleAnalyze = async () => {
-    if (!text.trim()) return;
-    setLoading(true);
-    try {
-      const res = await axios.post("http://127.0.0.1:8000/analyze", { text });
-      setResult(res.data);
-    } catch (err) {
-      console.error(err);
-    }
-    setLoading(false);
+  const [singleResult, setSingleResult] = useState(null);
+  const [batchResults, setBatchResults] = useState([]);
+
+  const addHistory = (item) => setHistory((prev) => [item, ...prev]);
+  const clearHistory = () => setHistory([]);
+
+  const clearAll = () => {
+    clearHistory();
+    setSingleResult(null);
+    setBatchResults([]);
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center px-4">
-      <motion.div
-        className="bg-gray-800/40 backdrop-blur-lg p-8 rounded-2xl shadow-2xl w-full max-w-xl border border-gray-700"
-        initial={{ opacity: 0, y: 40 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-      >
-        <h1 className="text-3xl font-bold mb-6 text-center">
-          🧠 Sentiment Analysis App
-        </h1>
+    <div className="min-h-screen w-full relative overflow-hidden bg-gradient-to-b from-indigo-50 via-white to-gray-50">
+      {/* Animated background */}
+      <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-indigo-100 via-white to-gray-50 animate-gradientBackground -z-10" />
 
-        <textarea
-          rows="5"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="Type your sentence here..."
-          className="w-full p-4 bg-gray-900/70 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 outline-none resize-none"
-        />
+      <div className="relative flex flex-col lg:flex-row justify-center items-start p-4 md:p-6 gap-6 max-w-6xl mx-auto w-full">
+        {/* Input Panel */}
+        <div className="flex-1 bg-white/90 backdrop-blur-md border border-gray-200 rounded-3xl shadow-lg p-4 md:p-6 flex flex-col gap-6 transition-all hover:scale-[1.01] hover:shadow-xl">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold text-gray-800 text-center md:text-left mb-4 drop-shadow-sm">
+            🧠 Sentiment Analyzer
+          </h1>
 
-        <button
-          onClick={handleAnalyze}
-          disabled={loading}
-          className={`mt-5 w-full py-3 rounded-lg text-lg font-medium transition-all ${
-            loading
-              ? "bg-gray-600 cursor-not-allowed"
-              : "bg-blue-600 hover:bg-blue-700"
-          }`}
-        >
-          {loading ? "Analyzing..." : "Analyze Sentiment"}
-        </button>
+          <ModeToggle mode={mode} setMode={setMode} />
 
-        {result && (
-          <motion.div
-            className="mt-8 text-center"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-          >
-            <h3
-              className={`text-2xl font-semibold ${
-                result.label === "positive" ? "text-green-400" : "text-red-400"
-              }`}
-            >
-              {result.label === "positive" ? "😊 Positive" : "😞 Negative"}
-            </h3>
-            <p className="text-gray-300 mt-2">
-              Confidence: <span className="font-bold">{result.score}</span>
-            </p>
-          </motion.div>
-        )}
-      </motion.div>
 
-    
+          <div className="mt-4 w-full">
+            {mode === "single" ? (
+              <SingleInput
+                addHistory={addHistory}
+                result={singleResult}
+                setResult={setSingleResult}
+              />
+            ) : (
+              <BatchInput
+                addHistory={addHistory}
+                results={batchResults}
+                setResults={setBatchResults}
+              />
+            )}
+          </div>
+        </div>
+
+        {/* History Panel */}
+        <div className="w-full lg:w-1/3 flex flex-col h-auto lg:h-[calc(100vh-4rem)]">
+          <HistoryPanel history={history} clearHistory={clearHistory} />
+        </div>
+      </div>
     </div>
   );
 }
-
-export default App;
