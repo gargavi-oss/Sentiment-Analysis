@@ -6,3 +6,4 @@ twitter_sentiment_model/
 /logs/
 hugface.py
 script.py
+distll_model.py
