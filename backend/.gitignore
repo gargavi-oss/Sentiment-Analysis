@@ -5,5 +5,4 @@ twitter_sentiment_model/
 *.pkl
 /logs/
 hugface.py
-script.py
 distll_model.py
