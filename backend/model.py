@@ -1,59 +1,83 @@
-import requests
-import os
+from transformers import AutoTokenizer, AutoModelForSequenceClassification, BitsAndBytesConfig
+import torch
 
-# Replace with your model repo ID
-MODEL_ID = "aarushibakshi/repo"
+MODEL_PATH = "aarushibakshi/repo"
 
-# Add your token (you can store it as an environment variable in Render)
-HF_API_TOKEN = os.getenv("HF_API_TOKEN")
+# Manual label mapping
+LABELS = ["negative", "positive"]
 
-API_URL = f"https://api-inference.huggingface.co/models/{MODEL_ID}"
-HEADERS = {"Authorization": f"Bearer {HF_API_TOKEN}"}
+# Use GPU if available, otherwise CPU
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f"Using device: {device}")
 
+# ------------------------------
+# Optimized model loading
+# ------------------------------
+print("Loading model and tokenizer...")
 
+# Load tokenizer normally (lightweight)
+tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH)
+
+# Load model with 8-bit quantization to reduce memory (70% smaller)
+try:
+    bnb_config = BitsAndBytesConfig(load_in_8bit=True)
+    model = AutoModelForSequenceClassification.from_pretrained(
+        MODEL_PATH,
+        quantization_config=bnb_config,
+        device_map="auto",
+    )
+    print("Loaded model in 8-bit quantized mode ✅")
+except Exception as e:
+    print(f"Quantization not available: {e}")
+    model = AutoModelForSequenceClassification.from_pretrained(
+        MODEL_PATH,
+        torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32
+    ).to(device)
+
+model.eval()
+print("Model loaded successfully ✅")
+
+# ------------------------------
+# Inference functions
+# ------------------------------
 def analyze_sentiment(text: str):
     text = text.strip()
     if not text:
         return {"error": "Empty text provided."}
 
-    payload = {"inputs": text}
-    response = requests.post(API_URL, headers=HEADERS, json=payload)
-    result = response.json()
+    inputs = tokenizer(text, return_tensors="pt", truncation=True, padding=True, max_length=128).to(device)
+    with torch.no_grad():
+        outputs = model(**inputs)
+        probs = torch.nn.functional.softmax(outputs.logits, dim=-1)
 
-    try:
-        label = result[0][0]["label"].lower()
-        score = round(result[0][0]["score"], 3)
-        return {
-            "text": text,
-            "label": label,
-            "score": score,
-            "emoji": "😊" if "pos" in label else "😞"
-        }
-    except Exception as e:
-        return {"error": str(result)}
+    pred_idx = torch.argmax(probs, dim=-1).item()
+    score = probs[0][pred_idx].item()
 
+    return {
+        "text": text,
+        "label": LABELS[pred_idx],
+        "score": round(score, 3),
+        "emoji": "😊" if LABELS[pred_idx] == "positive" else "😞"
+    }
 
 def analyze_batch(texts: list[str]):
     texts = [t.strip() for t in texts if t.strip()]
     if not texts:
         return {"results": []}
 
-    payload = {"inputs": texts}
-    response = requests.post(API_URL, headers=HEADERS, json=payload)
-    result = response.json()
+    inputs = tokenizer(texts, return_tensors="pt", truncation=True, padding=True, max_length=128).to(device)
+    with torch.no_grad():
+        outputs = model(**inputs)
+        probs = torch.nn.functional.softmax(outputs.logits, dim=-1)
 
     results = []
-    try:
-        for i, res in enumerate(result):
-            label = res[0]["label"].lower()
-            score = round(res[0]["score"], 3)
-            results.append({
-                "text": texts[i],
-                "label": label,
-                "score": score,
-                "emoji": "😊" if "pos" in label else "😞"
-            })
-    except Exception as e:
-        return {"error": str(result)}
-
+    for i, text in enumerate(texts):
+        pred_idx = torch.argmax(probs[i]).item()
+        score = probs[i][pred_idx].item()
+        results.append({
+            "text": text,
+            "label": LABELS[pred_idx],
+            "score": round(score, 3),
+            "emoji": "😊" if LABELS[pred_idx] == "positive" else "😞"
+        })
     return {"results": results}
