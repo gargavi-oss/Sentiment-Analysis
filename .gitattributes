@@ -1,1 +1,2 @@
 backend/distilbert-sentiment/model.safetensors filter=lfs diff=lfs merge=lfs -text
+backend/distilbert-sentiment/* filter=lfs diff=lfs merge=lfs -text
