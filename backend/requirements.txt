@@ -1,7 +1,7 @@
-fastapi==0.118.0
-uvicorn[standard]==0.23.0
-transformers==4.40.0
-torch==2.1.0+cpu
---extra-index-url https://download.pytorch.org/whl/cpu
-huggingface_hub==0.17.4
-requests>=2.31.0
+fastapi>=0.118.0
+uvicorn>=0.23.0
+transformers>=4.40.0
+torch>=2.1.0
+pandas>=2.1.0
+scikit-learn>=1.3.0
+datasets>=2.15.0
