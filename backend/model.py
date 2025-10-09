@@ -1,43 +1,36 @@
-from transformers import AutoTokenizer, AutoModelForSequenceClassification
-import torch
+import requests
+import os
 
-# Replace this with either a local path or Hugging Face model repo ID
-# Use HF Hub or local path
-MODEL_PATH = "aarushibakshi/repo"
+# Replace with your model repo ID
+MODEL_ID = "aarushibakshi/repo"
 
-# Load model and tokenizer
-tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH)
-model = AutoModelForSequenceClassification.from_pretrained(MODEL_PATH)
+# Add your token (you can store it as an environment variable in Render)
+HF_API_TOKEN = os.getenv("HF_API_TOKEN")
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model.to(device)
-model.eval()
+API_URL = f"https://api-inference.huggingface.co/models/{MODEL_ID}"
+HEADERS = {"Authorization": f"Bearer {HF_API_TOKEN}"}
 
-# Define labels explicitly (override numeric labels)
-# Adjust based on your fine-tuned model
-labels = ["negative", "positive"]
 
 def analyze_sentiment(text: str):
     text = text.strip()
     if not text:
         return {"error": "Empty text provided."}
 
-    inputs = tokenizer(text, return_tensors="pt", truncation=True, padding=True, max_length=128).to(device)
+    payload = {"inputs": text}
+    response = requests.post(API_URL, headers=HEADERS, json=payload)
+    result = response.json()
 
-    with torch.no_grad():
-        outputs = model(**inputs)
-        probs = torch.nn.functional.softmax(outputs.logits, dim=-1)
-
-    pred = torch.argmax(probs, dim=1).item()
-    score = round(probs[0][pred].item(), 3)
-    label = labels[pred]  # use the mapped label
-
-    return {
-        "text": text,
-        "label": label,
-        "score": score,
-        "emoji": "😊" if label == "positive" else "😞"
-    }
+    try:
+        label = result[0][0]["label"].lower()
+        score = round(result[0][0]["score"], 3)
+        return {
+            "text": text,
+            "label": label,
+            "score": score,
+            "emoji": "😊" if "pos" in label else "😞"
+        }
+    except Exception as e:
+        return {"error": str(result)}
 
 
 def analyze_batch(texts: list[str]):
@@ -45,22 +38,22 @@ def analyze_batch(texts: list[str]):
     if not texts:
         return {"results": []}
 
-    inputs = tokenizer(texts, return_tensors="pt", truncation=True, padding=True, max_length=128).to(device)
+    payload = {"inputs": texts}
+    response = requests.post(API_URL, headers=HEADERS, json=payload)
+    result = response.json()
 
-    with torch.no_grad():
-        outputs = model(**inputs)
-        probs = torch.nn.functional.softmax(outputs.logits, dim=-1)
-
-    preds = torch.argmax(probs, dim=1)
     results = []
-    for i, text in enumerate(texts):
-        label = labels[preds[i].item()]  # map numeric label to string
-        score = round(probs[i][preds[i]].item(), 3)
-        results.append({
-            "text": text,
-            "label": label,
-            "score": score,
-            "emoji": "😊" if label == "positive" else "😞"
-        })
+    try:
+        for i, res in enumerate(result):
+            label = res[0]["label"].lower()
+            score = round(res[0]["score"], 3)
+            results.append({
+                "text": texts[i],
+                "label": label,
+                "score": score,
+                "emoji": "😊" if "pos" in label else "😞"
+            })
+    except Exception as e:
+        return {"error": str(result)}
 
     return {"results": results}
