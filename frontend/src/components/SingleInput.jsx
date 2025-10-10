@@ -11,7 +11,7 @@ export default function SingleInput({ addHistory, result, setResult }) {
     if (!text.trim()) return;
     setLoading(true);
     try {
-      const res = await axios.post("https://sentiment-analysis-mb76.onrender.com/analyze", { text });
+      const res = await axios.post("https://lin-unsuperseded-siena.ngrok-free.dev/analyze", { text });
       const resultData = res.data || { text, label: "N/A", score: 0, emoji: "😐" };
       setResult(resultData);
       addHistory({ type: "single", result: resultData, timestamp: new Date() });
