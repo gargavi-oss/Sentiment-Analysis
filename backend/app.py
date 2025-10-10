@@ -43,7 +43,7 @@ if __name__ == "__main__":
     import os
     import uvicorn
 
-    # Render dynamically assigns a port
+    
     port = int(os.environ.get("PORT", 10000))
 
     # Bind FastAPI to that port

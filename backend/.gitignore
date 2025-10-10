@@ -7,3 +7,4 @@ twitter_sentiment_model/
 hugface.py
 distll_model.py
 !distilbert-sentiment/
+Docker
