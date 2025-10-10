@@ -38,7 +38,13 @@ async def analyze_batch_texts(data: BatchRequest):
         return analyze_batch(data.texts)
     except Exception as e:
         return {"error": str(e)}
-
+    
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8000))
-    uvicorn.run(app, host="0.0.0.0", port=port, reload=True)
+    import os
+    import uvicorn
+
+    # Render dynamically assigns a port
+    port = int(os.environ.get("PORT", 10000))
+
+    # Bind FastAPI to that port
+    uvicorn.run("app:app", host="0.0.0.0", port=port, reload=False)
