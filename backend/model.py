@@ -1,91 +1,87 @@
 import joblib
 import re
 
-# Load your trained Logistic Regression model and TF-IDF vectorizer
-lr_model = joblib.load("./model/sentiment_model.pkl")
-vectorizer = joblib.load("./model/tfidf_vectorizer.pkl") # your saved TF-IDF vectorizer
+# ---------------- Load Model, Vectorizer, and Label Encoder ----------------
+model = joblib.load('./model/logreg_sentiment_model.pkl')
+vectorizer = joblib.load('./model/tfidf_vectorizer.pkl')
+label_encoder = joblib.load('./model/label_encoder.pkl')
 
-# Same cleaning function used during training
-def clean_text(text):
-    stopwordlist = set([
-        'a','about','above','after','again','all','am','an','and','any','are','as','at','be','because','been',
-        'before','being','below','between','both','by','can','did','do','does','doing','down','during','each',
-        'few','for','from','further','had','has','have','he','her','here','hers','him','his','how','i','if',
-        'in','into','is','it','its','itself','just','me','more','most','my','myself','no','nor','not','of','on',
-        'once','only','or','other','our','ours','out','own','re','s','she','so','some','such','t','than','that',
-        'the','their','them','then','there','these','they','this','those','to','too','under','until','up','very',
-        'was','we','were','what','when','where','which','while','who','why','will','with','you','your','yours',
-        'yourself'
-    ])
+# ---------------- Text Cleaning ----------------
+def preprocess_text(text):
     text = text.lower()
-    text = re.sub(r'((www\.[^\s]+)|(https?://[^\s]+))', ' ', text)
-    text = re.sub(r'@[\S]+', 'USER', text)
-    text = re.sub(r'#(\S+)', r'\1', text)
+    text = re.sub(r'http\S+|www\S+', '', text)
+    text = re.sub(r'@\w+', '', text)
+    text = re.sub(r'#\w+', '', text)
+    text = re.sub(r'[^\w\s]', '', text)
     text = re.sub(r'\d+', '', text)
     text = re.sub(r'\s+', ' ', text).strip()
-    text = " ".join([w for w in text.split() if w not in stopwordlist])
     return text
 
-# Labels
-LABELS = ["negative", "neutral", "positive"]
-EMOJIS = {"positive": "😊", "neutral": "😐", "negative": "😞"}
+# ---------------- Labels and Emojis ----------------
+EMOJIS = {"negative": "😞", "neutral": "😐", "positive": "😊"}
 
-# ---------- Single text inference ----------
-def analyze_sentiment(text: str, neutral_threshold=(0.4, 0.6)):
+# ---------------- Rule-based override ----------------
+POSITIVE_WORDS = {"happy","love","great","good","awesome","fantastic","amazing"}
+NEGATIVE_WORDS = {"injured","bad","worst","sad","terrible","pain","hurt"}
+
+def apply_neutral_rule(text, predicted_label):
+    text_words = set(preprocess_text(text).split())
+    if any(w in text_words for w in POSITIVE_WORDS) and any(w in text_words for w in NEGATIVE_WORDS):
+        return "neutral"
+    return predicted_label
+
+# ---------------- Single Tweet Analysis ----------------
+def analyze_sentiment(text):
     text = text.strip()
     if not text:
         return {"error": "Empty text provided."}
-    
-    cleaned_text = clean_text(text)
-    vect_text = vectorizer.transform([cleaned_text])
-    
-    # Get predicted probabilities
-    probs = lr_model.predict_proba(vect_text)[0]
-    
-    # Determine class using threshold
-    pos_prob = probs[1]
-    neg_prob = probs[0]
-    if pos_prob >= neutral_threshold[1]:
-        label = "positive"
-    elif neg_prob >= neutral_threshold[1]:
-        label = "negative"
-    else:
-        label = "neutral"
-    
-    score = max(probs)  # confidence score
-    return {"text": text, "label": label, "score": round(score, 3), "emoji": EMOJIS[label]}
 
-# ---------- Batch inference ----------
-def analyze_batch(texts: list[str], neutral_threshold=(0.4, 0.6)):
+    cleaned_text = preprocess_text(text)
+    vect_text = vectorizer.transform([cleaned_text])
+
+    pred_class = model.predict(vect_text)[0]
+    pred_label = label_encoder.inverse_transform([pred_class])[0]
+
+    # Apply rule-based neutral override
+    pred_label = apply_neutral_rule(text, pred_label)
+
+    pred_proba = model.predict_proba(vect_text)[0].max()
+
+    return {
+        "text": text,
+        "label": pred_label,
+        "score": round(pred_proba, 3),
+        "emoji": EMOJIS.get(pred_label, "😐")
+    }
+
+# ---------------- Batch Analysis ----------------
+def analyze_batch(texts):
     texts = [t.strip() for t in texts if t.strip()]
     if not texts:
         return {"results": []}
-    
-    cleaned_texts = [clean_text(t) for t in texts]
+
+    cleaned_texts = [preprocess_text(t) for t in texts]
     vect_texts = vectorizer.transform(cleaned_texts)
-    probs_list = lr_model.predict_proba(vect_texts)
-    
+    pred_classes = model.predict(vect_texts)
+    pred_probs = model.predict_proba(vect_texts)
+
     results = []
     for i, text in enumerate(texts):
-        probs = probs_list[i]
-        pos_prob = probs[1]
-        neg_prob = probs[0]
-        if pos_prob >= neutral_threshold[1]:
-            label = "positive"
-        elif neg_prob >= neutral_threshold[1]:
-            label = "negative"
-        else:
-            label = "neutral"
-        score = max(probs)
-        results.append({"text": text, "label": label, "score": round(score,3), "emoji": EMOJIS[label]})
-    
+        label = label_encoder.inverse_transform([pred_classes[i]])[0]
+
+        # Apply rule-based neutral override
+        label = apply_neutral_rule(text, label)
+
+        score = pred_probs[i].max()
+        results.append({
+            "text": text,
+            "label": label,
+            "score": round(score, 3),
+            "emoji": EMOJIS.get(label, "😐")
+        })
     return {"results": results}
 
-# ---------- Test ----------
+# ---------------- Example ----------------
 if __name__ == "__main__":
-    print(analyze_sentiment("I am happy but also hurt."))
-    print(analyze_batch([
-        "I love this product!",
-        "This is terrible!",
-        "I’m okay with it, not too bad."
-    ]))
+    text = "I am happy that I am injured"
+    print(analyze_sentiment(text))

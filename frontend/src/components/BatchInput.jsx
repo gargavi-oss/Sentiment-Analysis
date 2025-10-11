@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
 import SentimentChart from "./SentimentChart";
-import { LABEL_COLORS, LABEL_EMOJIS } from "./constants";
 
 export default function BatchInput({ addHistory, results, setResults }) {
   const [batchText, setBatchText] = useState("");
@@ -13,23 +12,34 @@ export default function BatchInput({ addHistory, results, setResults }) {
     setLoading(true);
 
     try {
-      const res = await axios.post("https://h7fqj3ch-8000.inc1.devtunnels.ms/batch_analyze", { texts });
+      const res = await axios.post("http://127.0.0.1:8000/batch_analyze", { texts });
       const batchResults = res.data.results || [];
-      const cleanResults = batchResults.map((r) => ({
-        text: r.text || "",
-        label: r.label || "neutral",
-        score: r.score || 0,
-        emoji: LABEL_EMOJIS[r.label] || "😐",
-      }));
 
-      setResults(cleanResults);
-      addHistory({ type: "batch", result: cleanResults, timestamp: new Date() });
+      // ✅ Hardcoded labels, colors, emojis
+      const cleanedResults = batchResults.map((r) => {
+        const label = (r.label || "neutral").toLowerCase();
+        const EMOJIS = { positive: "😊", negative: "😞", neutral: "😐" };
+        const COLORS = { positive: "#22c55e", negative: "#ef4444", neutral: "#eab308" };
+
+        return {
+          text: r.text || "",
+          label,
+          score: r.score || 0,
+          emoji: EMOJIS[label],
+          color: COLORS[label],
+        };
+      });
+
+      setResults(cleanedResults);
+      addHistory({ type: "batch", result: cleanedResults, timestamp: new Date() });
     } catch (err) {
       console.error("Batch analyze error:", err);
     }
+
     setLoading(false);
   };
 
+  // Summary for PieChart
   const summary = results.reduce(
     (acc, r) => {
       if (r.label === "positive") acc.positive++;
@@ -64,15 +74,22 @@ export default function BatchInput({ addHistory, results, setResults }) {
 
       {results.length > 0 && (
         <div className="mt-6 flex flex-col lg:flex-row gap-6 items-stretch">
-          <div className="flex-1 bg-white border border-gray-200 rounded-2xl p-6 shadow-md flex flex-col justify-center items-center">
+          <div className="flex-1 bg-white border border-gray-200 rounded-2xl p-6 shadow-md flex flex-col items-center">
             <h3 className="font-semibold text-gray-700 mb-3 text-center">
               Batch Sentiment Summary
             </h3>
-            <SentimentChart result={{ label: "batch", counts: summary }} />
+            <SentimentChart
+              result={{
+                label: "batch",
+                counts: summary,
+              }}
+            />
           </div>
 
           <div className="flex-1 bg-white border border-gray-200 rounded-2xl p-6 shadow-md overflow-y-auto max-h-[400px]">
-            <h3 className="font-semibold text-gray-700 mb-3 text-center">Analyzed Texts</h3>
+            <h3 className="font-semibold text-gray-700 mb-3 text-center">
+              Analyzed Texts
+            </h3>
             <div className="space-y-3">
               {results.map((r, i) => (
                 <div
@@ -81,13 +98,10 @@ export default function BatchInput({ addHistory, results, setResults }) {
                 >
                   <div className="w-[75%]">
                     <p className="font-medium text-gray-800 truncate">{r.text}</p>
-                    <p className={`text-sm text-${LABEL_COLORS[r.label]}`}>
-                      {r.label.toUpperCase()} ({(r.score * 100).toFixed(1)}%)
+                    <p style={{ color: r.color }} className="text-sm font-semibold">
+                      {r.label.toUpperCase()} ({(r.score * 100).toFixed(1)}%) {r.emoji}
                     </p>
                   </div>
-                  <span className={`text-xl text-${LABEL_COLORS[r.label]}`}>
-                    {r.emoji}
-                  </span>
                 </div>
               ))}
             </div>

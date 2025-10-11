@@ -1,14 +1,18 @@
 import React from "react";
 import { FaTrashAlt } from "react-icons/fa";
 import SentimentChart from "./SentimentChart";
+import { LABEL_COLORS } from "./constants";
 
 export default function BatchTable({ data, onClear }) {
-  // Prepare data for chart
-  const chartData = [
-    { name: "Positive", value: data.filter(d => d.label === "positive").length },
-    { name: "Negative", value: data.filter(d => d.label === "negative").length },
-    { name: "Neutral", value: data.filter(d => d.label === "neutral").length },
-  ];
+  const chartCounts = data.reduce(
+    (acc, r) => {
+      if (r.label === "positive") acc.positive++;
+      else if (r.label === "negative") acc.negative++;
+      else acc.neutral++;
+      return acc;
+    },
+    { positive: 0, negative: 0, neutral: 0 }
+  );
 
   return (
     <div>
@@ -38,13 +42,8 @@ export default function BatchTable({ data, onClear }) {
                 <td className="py-2 px-2">{index + 1}</td>
                 <td className="py-2 px-2 truncate max-w-xs">{item.text}</td>
                 <td
-                  className={`py-2 px-2 font-semibold ${
-                    item.label === "positive"
-                      ? "text-green-400"
-                      : item.label === "negative"
-                      ? "text-red-400"
-                      : "text-yellow-400"
-                  }`}
+                  className="py-2 px-2 font-semibold"
+                  style={{ color: LABEL_COLORS[item.label] }}
                 >
                   {item.label.toUpperCase()}
                 </td>
@@ -56,10 +55,12 @@ export default function BatchTable({ data, onClear }) {
       </div>
 
       <div className="mt-4">
-        <SentimentChart probabilities={chartData.reduce((acc, d) => {
-          acc[d.name.toLowerCase()] = d.value / data.length;
-          return acc;
-        }, {})} />
+        <SentimentChart
+          result={{
+            label: "batch",
+            counts: chartCounts,
+          }}
+        />
       </div>
     </div>
   );

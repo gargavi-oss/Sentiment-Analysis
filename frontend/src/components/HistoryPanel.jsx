@@ -1,6 +1,10 @@
 import React from "react";
+import SentimentChart from "./SentimentChart";
 
 export default function HistoryPanel({ history, clearHistory }) {
+  const EMOJIS = { positive: "😊", negative: "😞", neutral: "😐" };
+  const COLORS = { positive: "#22c55e", negative: "#ef4444", neutral: "#eab308" };
+
   return (
     <div className="h-full flex flex-col bg-white/80 backdrop-blur-md border border-gray-200 rounded-3xl shadow-lg p-4 overflow-hidden">
       {/* Header */}
@@ -36,47 +40,56 @@ export default function HistoryPanel({ history, clearHistory }) {
                 </span>
               </div>
 
-              {/* Show batch or single results */}
+              {/* Batch results */}
               {item.type === "batch" ? (
-                <div className="space-y-1 mt-1">
-                  {item.result.map((r, i) => (
-                    <div
-                      key={i}
-                      className="flex justify-between items-center text-sm border-b border-gray-200 last:border-none pb-1"
-                    >
-                      <span className="text-gray-700 truncate w-[70%]">
-                        {r.text.length > 40 ? r.text.slice(0, 40) + "..." : r.text}
-                      </span>
-                      <span
-                        className={`${
-                          r.label === "positive"
-                            ? "text-green-500"
-                            : r.label === "negative"
-                            ? "text-red-500"
-                            : "text-yellow-500"
-                        }`}
+                <>
+                  <div className="space-y-1 mt-1">
+                    {item.result.map((r, i) => (
+                      <div
+                        key={i}
+                        className="flex justify-between items-center text-sm border-b border-gray-200 last:border-none pb-1"
                       >
-                        {r.emoji}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+                        <span className="text-gray-700 truncate w-[70%]">
+                          {r.text.length > 40 ? r.text.slice(0, 40) + "..." : r.text}
+                        </span>
+                        <span style={{ color: COLORS[r.label] }}>
+                          {EMOJIS[r.label]}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-2">
+                    <SentimentChart
+                      result={{
+                        label: "batch",
+                        counts: item.result.reduce(
+                          (acc, r) => {
+                            if (r.label === "positive") acc.positive++;
+                            else if (r.label === "negative") acc.negative++;
+                            else acc.neutral++;
+                            return acc;
+                          },
+                          { positive: 0, negative: 0, neutral: 0 }
+                        ),
+                      }}
+                    />
+                  </div>
+                </>
               ) : (
-                <div className="flex justify-between items-center">
-                  <span
-                    className={`text-lg ${
-                      item.result.label === "positive"
-                        ? "text-green-500"
-                        : item.result.label === "negative"
-                        ? "text-red-500"
-                        : "text-yellow-500"
-                    }`}
-                  >
-                    {item.result.emoji}
-                  </span>
-                  <span className="text-sm text-gray-600">
-                    Accuracy: {(item.result.score * 100).toFixed(1)}%
-                  </span>
+                // Single input display with text, label, emoji, accuracy
+                <div className="mt-2 flex flex-col gap-1">
+                  <p className="text-gray-800 font-medium">{item.result.text}</p>
+                  <div className="flex justify-between items-center">
+                    <span style={{ color: COLORS[item.result.label] }} className="text-lg">
+                      {EMOJIS[item.result.label]}
+                    </span>
+                    <span
+                      className="font-semibold"
+                      style={{ color: COLORS[item.result.label] }}
+                    >
+                      {item.result.label.toUpperCase()} ({(item.result.score * 100).toFixed(1)}%)
+                    </span>
+                  </div>
                 </div>
               )}
             </div>
