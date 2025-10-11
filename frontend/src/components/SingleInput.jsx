@@ -12,7 +12,7 @@ export default function SingleInput({ addHistory, result, setResult }) {
     setLoading(true);
     try {
       const res = await axios.post("https://h7fqj3ch-8000.inc1.devtunnels.ms/analyze", { text });
-      const resultData = res.data || { text, label: "N/A", score: 0, emoji: "😐" };
+      const resultData = res.data || { text, label: "neutral", score: 0, emoji: "😐" };
       setResult(resultData);
       addHistory({ type: "single", result: resultData, timestamp: new Date() });
     } catch (err) {
@@ -28,7 +28,6 @@ export default function SingleInput({ addHistory, result, setResult }) {
 
   return (
     <div className="w-full flex flex-col gap-4">
-      {/* Textarea */}
       <textarea
         rows="4"
         value={text}
@@ -37,7 +36,6 @@ export default function SingleInput({ addHistory, result, setResult }) {
         className="w-full p-4 bg-white/80 border border-gray-200 rounded-xl text-gray-800 focus:ring-2 focus:ring-blue-300 outline-none resize-none shadow-sm"
       />
 
-      {/* Button */}
       <button
         onClick={handleAnalyze}
         disabled={loading}
@@ -50,15 +48,11 @@ export default function SingleInput({ addHistory, result, setResult }) {
         {loading ? "Analyzing..." : "Analyze Sentiment"}
       </button>
 
-      {/* Result Display */}
       {result && result.label && (
         <div className="mt-6 flex flex-col lg:flex-row gap-6 items-stretch">
-          {/* Result Card */}
           <div className="flex-1 bg-white border border-gray-200 rounded-2xl p-6 shadow-md">
             <ResultCard result={result} />
           </div>
-
-          {/* Chart */}
           <div className="flex-1 bg-white border border-gray-200 rounded-2xl p-6 shadow-md flex justify-center items-center">
             <SentimentChart key={result.label + result.score} result={result} />
           </div>

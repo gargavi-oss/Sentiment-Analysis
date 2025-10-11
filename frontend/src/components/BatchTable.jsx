@@ -26,7 +26,7 @@ export default function BatchTable({ data, onClear }) {
               <th className="py-2 px-2">#</th>
               <th className="py-2 px-2">Text</th>
               <th className="py-2 px-2">Label</th>
-              <th className="py-2 px-2">Confidence</th>
+              <th className="py-2 px-2">Accuracy</th>
             </tr>
           </thead>
           <tbody>

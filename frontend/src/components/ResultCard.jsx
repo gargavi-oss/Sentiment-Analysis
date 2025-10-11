@@ -1,4 +1,5 @@
 import React from "react";
+import { LABEL_COLORS, LABEL_EMOJIS } from "./constants";
 
 export default function ResultCard({ result }) {
   if (!result) return null;
@@ -9,18 +10,12 @@ export default function ResultCard({ result }) {
         <span className="font-semibold text-gray-800">Text:</span> {result.text}
       </p>
       <p
-        className={`text-xl font-semibold ${
-          result.label === "positive"
-            ? "text-green-600"
-            : result.label === "negative"
-            ? "text-red-500"
-            : "text-yellow-500"
-        }`}
+        className={`text-xl font-semibold text-${LABEL_COLORS[result.label]}`}
       >
-        {result.emoji} {result.label?.toUpperCase() || "N/A"}
+        {LABEL_EMOJIS[result.label]} {result.label?.toUpperCase() || "N/A"}
       </p>
       <p className="text-gray-600 mt-1">
-        Confidence: <span className="font-bold">{(result.score * 100).toFixed(1)}%</span>
+        Accuracy: <span className="font-bold">{(result.score * 100).toFixed(1)}%</span>
       </p>
     </div>
   );

@@ -75,7 +75,7 @@ export default function HistoryPanel({ history, clearHistory }) {
                     {item.result.emoji}
                   </span>
                   <span className="text-sm text-gray-600">
-                    Confidence: {(item.result.score * 100).toFixed(1)}%
+                    Accuracy: {(item.result.score * 100).toFixed(1)}%
                   </span>
                 </div>
               )}
