@@ -12,7 +12,7 @@ export default function BatchInput({ addHistory, results, setResults }) {
     setLoading(true);
 
     try {
-      const res = await axios.post("http://127.0.0.1:8000/batch_analyze", { texts });
+      const res = await axios.post("https://h7fqj3ch-8000.inc1.devtunnels.ms/batch_analyze", { texts });
       const batchResults = res.data.results || [];
 
       // ✅ Hardcoded labels, colors, emojis

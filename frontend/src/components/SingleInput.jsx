@@ -12,7 +12,7 @@ export default function SingleInput({ addHistory, result, setResult }) {
     setLoading(true);
 
     try {
-      const res = await axios.post("http://127.0.0.1:8000/analyze", { text });
+      const res = await axios.post("https://h7fqj3ch-8000.inc1.devtunnels.ms/analyze", { text });
       const data = res.data;
 
       // Hardcoded emojis/colors
